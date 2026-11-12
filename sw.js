@@ -1,4 +1,4 @@
-const CACHE="cuaca-v1";
+const CACHE="cuaca-v2";
 const ASSETS=["./","index.html","style.css","script.js","manifest.json","icons/icon-192.png","icons/icon-512.png","icons/maskable-512.png","icons/apple-touch-icon.png","icons/favicon-32.png"];
 
 self.addEventListener("install",e=>{

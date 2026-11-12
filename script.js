@@ -119,13 +119,63 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){
   addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 }
 const toast=msg=>{const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),4500)};
-const standalone=matchMedia("(display-mode:standalone)").matches||navigator.standalone;
+
+// ===== Tombol unduh/pasang: semua perangkat & browser =====
+const ua=navigator.userAgent,
+  isIOS=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1), // iPadOS menyamar sebagai Mac
+  isAndroid=/android/i.test(ua),
+  isFirefox=/firefox|fxios/i.test(ua),
+  isSamsung=/samsungbrowser/i.test(ua),
+  isEdge=/edg(e|a|ios)?\//i.test(ua),
+  isOpera=/opr\/|opera/i.test(ua),
+  isChromium=/chrome|crios|chromium/i.test(ua)&&!isEdge&&!isOpera&&!isSamsung,
+  isSafari=/safari/i.test(ua)&&!/chrome|crios|chromium|android|fxios|edgios|opios/i.test(ua),
+  isMac=/macintosh/i.test(ua)&&!isIOS;
+const isStandalone=()=>matchMedia("(display-mode:standalone)").matches||matchMedia("(display-mode:window-controls-overlay)").matches||navigator.standalone===true;
 let deferred=null;
-addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;if(!standalone)$("install").hidden=false});
-addEventListener("appinstalled",()=>{$("install").hidden=true;deferred=null;toast("Aplikasi terpasang")});
-const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!standalone;
-if(ios)$("install").hidden=false;
-$("install").onclick=async()=>{
-  if(deferred){deferred.prompt();await deferred.userChoice;deferred=null;$("install").hidden=true}
-  else if(ios)toast("Di Safari: ketuk Bagikan, lalu Tambah ke Layar Utama");
+const inst=$("install"),dlg=$("guide");
+
+// Panduan manual untuk browser yang tidak punya prompt otomatis
+const guide=()=>{
+  if(isIOS){
+    return isSafari
+      ?["Pasang di iPhone/iPad (Safari)",["Ketuk ikon Bagikan (kotak dengan panah ke atas) di bilah Safari.","Gulir lalu pilih Tambah ke Layar Utama.","Ketuk Tambah."]]
+      :["Pasang di iPhone/iPad",["Di iOS, aplikasi hanya bisa dipasang lewat Safari. Buka halaman ini di Safari.","Ketuk Bagikan, lalu Tambah ke Layar Utama."]];
+  }
+  if(isAndroid){
+    if(isFirefox)return["Pasang di Firefox Android",["Ketuk menu ⋮ di pojok kanan atas.","Pilih Pasang (atau Tambahkan ke layar utama).","Konfirmasi."]];
+    if(isSamsung)return["Pasang di Samsung Internet",["Ketuk menu ☰ di bagian bawah.","Pilih Tambah halaman ke, lalu Layar utama (atau Pasang aplikasi).","Konfirmasi."]];
+    return["Pasang di Android",["Ketuk menu ⋮ di pojok kanan atas browser.","Pilih Pasang aplikasi atau Tambahkan ke layar utama.","Konfirmasi."]];
+  }
+  if(isMac&&isSafari)return["Pasang di Safari (Mac)",["Buka menu File di bilah menu.","Pilih Tambahkan ke Dock.","Klik Tambah."]];
+  if(isFirefox)return["Firefox desktop",["Firefox desktop belum mendukung pemasangan aplikasi web.","Tekan Ctrl+D (⌘+D di Mac) untuk menyimpan sebagai bookmark.","Untuk versi aplikasi, buka halaman ini di Chrome, Edge, atau Safari."]];
+  if(isEdge)return["Pasang di Microsoft Edge",["Klik ikon Aplikasi/Pasang di sisi kanan bilah alamat, atau menu ⋯.","Pilih Aplikasi, lalu Instal situs ini sebagai aplikasi.","Klik Instal."]];
+  if(isChromium||isOpera)return["Pasang di browser ini",["Klik ikon pasang di sisi kanan bilah alamat, atau buka menu ⋮.","Pilih Instal Cuaca (atau Simpan dan bagikan, lalu Instal halaman sebagai aplikasi).","Klik Instal."]];
+  return["Pasang aplikasi",["Buka menu browser Anda.","Cari opsi Instal aplikasi, Tambahkan ke layar utama, atau Tambahkan ke Dock.","Konfirmasi."]];
+};
+const openGuide=()=>{
+  const [t,steps]=guide();
+  $("gt").textContent=t;
+  $("gs").innerHTML="";
+  steps.forEach(s=>{const li=document.createElement("li");li.textContent=s;$("gs").appendChild(li)});
+  if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","");
+};
+$("gx").onclick=()=>dlg.close?dlg.close():dlg.removeAttribute("open");
+dlg.addEventListener("click",e=>{if(e.target===dlg)$("gx").click()});
+
+// Tombol selalu tampil selama aplikasi belum terpasang
+const refresh=()=>{inst.hidden=isStandalone()};
+refresh();
+matchMedia("(display-mode:standalone)").addEventListener?.("change",refresh);
+
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;refresh()});
+addEventListener("appinstalled",()=>{deferred=null;inst.hidden=true;toast("Aplikasi terpasang")});
+
+inst.onclick=async()=>{
+  if(deferred){
+    deferred.prompt();
+    const r=await deferred.userChoice.catch(()=>null);
+    deferred=null;
+    if(r&&r.outcome==="accepted")inst.hidden=true;
+  }else openGuide(); // iOS, Safari, Firefox, Samsung, dll.
 };

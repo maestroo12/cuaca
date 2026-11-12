@@ -23,7 +23,7 @@
 <main class="app">
   <header class="reveal" style="--d:0s">
     <h1>Prakiraan Cuaca<small id="loc"></small></h1>
-    <div class="acts"><button id="install" hidden>Pasang aplikasi</button><button id="theme" aria-label="Ganti tema">Mode gelap</button></div>
+    <div class="acts"><button id="install" hidden>Unduh aplikasi</button><button id="theme" aria-label="Ganti tema">Mode gelap</button></div>
   </header>
 
   <section class="hero reveal" style="--d:.1s" id="hero" aria-label="Cuaca saat ini">
@@ -59,6 +59,11 @@
   <footer class="reveal" style="--d:.7s">Data: Open-Meteo · diperbarui <span id="upd"></span> · zona waktu Asia/Jakarta</footer>
 </main>
 <div class="toast" id="toast" role="status"></div>
+<dialog id="guide" aria-labelledby="gt">
+  <h2 id="gt"></h2>
+  <ol id="gs"></ol>
+  <button id="gx" type="button">Mengerti</button>
+</dialog>
 <script src="script.js"></script>
 </body>
 </html>
